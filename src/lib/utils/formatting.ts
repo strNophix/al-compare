@@ -6,7 +6,7 @@ dayjs.extend(utc);
 export function formatTimestamp(unix: number): string {
   return dayjs(unix * 1000)
     .local()
-    .format("MM-DDTHH");
+    .format("MM/DD HH:mm");
 }
 
 export function formatProgress(
