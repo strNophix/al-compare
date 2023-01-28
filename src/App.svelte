@@ -4,18 +4,29 @@
   import RowHeader from "./lib/components/table/RowHeader.svelte";
   import { AniList } from "./lib/services/anilist";
   import { formatProgress } from "./lib/utils/formatting";
+  import { onMount } from "svelte";
+
+  const styleClasses = {
+    tableHeader: "text-sm font-medium text-gray-900 px-6 py-4 text-left",
+  };
 
   let searchTerm = "";
   let onlyShowCommon = true;
 
   let inputUser = "";
 
+  onMount(async () => {
+    const urlParams = new URL(window.location.href).searchParams;
+    const users = urlParams.getAll("users[]");
+    users.forEach(loadUser);
+  });
+
   function hotEncode(index, data) {
     return index.map((idx) => data[idx] ?? null);
   }
 
-  function processUser(userName: string, mediaList: MediaListCollection) {
-    tableIndex.update((old) => [...old, userName]);
+  function processUser(username: string, mediaList: MediaListCollection) {
+    tableIndex.update((old) => [...old, username]);
 
     for (const list of mediaList.lists) {
       for (const listEntry of list.entries) {
@@ -26,20 +37,22 @@
           progress: {},
         };
 
-        row.progress[userName] = listEntry.progress;
+        row.progress[username] = listEntry.progress;
 
         table.update((map) => map.set(rowId, row));
       }
     }
   }
 
+  async function loadUser(username: string) {
+    const { error, data } = await AniList.fetchMediaList(username);
+    const resp = await data.json();
+    processUser(username, resp.data.MediaListCollection);
+  }
+
   async function handleAddUser() {
     if (inputUser.length === 0) return;
-    const { error, data } = await AniList.fetchMediaList(inputUser);
-
-    const resp = await data.json();
-    processUser(inputUser, resp.data.MediaListCollection);
-
+    loadUser(inputUser);
     inputUser = "";
   }
 
@@ -47,10 +60,6 @@
     term: searchTerm.toLowerCase(),
     onlyCommon: onlyShowCommon,
   }));
-
-  const styleClasses = {
-    tableHeader: "text-sm font-medium text-gray-900 px-6 py-4 text-left",
-  };
 </script>
 
 <main class="w-screen min-h-screen bg-slate-50">
@@ -75,9 +84,9 @@
             </div>
           </div>
         </th>
-        {#each $tableIndex as userName}
+        {#each $tableIndex as username}
           <th scope="col" class="{styleClasses.tableHeader}">
-            {userName}
+            {username}
           </th>
         {/each}
         <th scope="col" class="{styleClasses.tableHeader}">
