@@ -6,3 +6,5 @@ export type RowId = number;
 export type ProgressEntry = Record<string, number>;
 export type ProgressRow = { media: Media; progress: ProgressEntry };
 export type ProgressTable = Map<RowId, ProgressRow>;
+
+export type TableFilters = { term: string; onlyCommon: boolean };

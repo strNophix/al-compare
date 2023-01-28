@@ -1,36 +1,36 @@
 <script lang="ts">
-  import type { MediaListCollection, ProgressRow, RowId } from "./lib/types";
-  import { term, items, filtered } from "./stores/table";
+  import type { MediaListCollection, ProgressRow } from "./lib/types";
+  import { tableFilters, table, filtered, tableIndex } from "./stores/table";
   import RowHeader from "./lib/components/table/RowHeader.svelte";
   import { AniList } from "./lib/services/anilist";
   import { formatProgress } from "./lib/utils/formatting";
 
+  let searchTerm = "";
+  let onlyShowCommon = true;
+
   let inputUser = "";
-  let progressIndex = [];
 
   function hotEncode(index, data) {
     return index.map((idx) => data[idx] ?? null);
   }
 
   function processUser(userName: string, mediaList: MediaListCollection) {
-    progressIndex.push(userName);
+    tableIndex.update((old) => [...old, userName]);
 
     for (const list of mediaList.lists) {
       for (const listEntry of list.entries) {
         let rowId = listEntry.media.id;
 
-        let row: ProgressRow = $items.get(rowId) ?? {
+        let row: ProgressRow = $table.get(rowId) ?? {
           media: listEntry.media,
           progress: {},
         };
 
         row.progress[userName] = listEntry.progress;
 
-        items.update((map) => map.set(rowId, row));
+        table.update((map) => map.set(rowId, row));
       }
     }
-
-    progressIndex = progressIndex;
   }
 
   async function handleAddUser() {
@@ -43,8 +43,10 @@
     inputUser = "";
   }
 
-  let searchTerm = "";
-  $: term.set(searchTerm.toLowerCase());
+  $: tableFilters.update((old) => ({
+    term: searchTerm.toLowerCase(),
+    onlyCommon: onlyShowCommon,
+  }));
 
   const styleClasses = {
     tableHeader: "text-sm font-medium text-gray-900 px-6 py-4 text-left",
@@ -56,14 +58,24 @@
     <table class="min-w-full">
       <thead>
         <th scope="col" class="{styleClasses.tableHeader} w-1/3">
-          <input
-            class="border rounded-sm px-3 py-2"
-            type="text"
-            placeholder="Filter media"
-            bind:value="{searchTerm}"
-          />
+          <div class="flex items-center space-x-2">
+            <input
+              class="border rounded-sm px-3 py-2"
+              type="text"
+              placeholder="Filter media"
+              bind:value="{searchTerm}"
+            />
+            <div>
+              <label for="onlyCommon">Only show common media</label>
+              <input
+                id="onlyCommon"
+                type="checkbox"
+                bind:checked="{onlyShowCommon}"
+              />
+            </div>
+          </div>
         </th>
-        {#each progressIndex as userName}
+        {#each $tableIndex as userName}
           <th scope="col" class="{styleClasses.tableHeader}">
             {userName}
           </th>
@@ -86,7 +98,7 @@
             <td class="px-6 py-3 text-sm font-medium text-gray-900">
               <RowHeader media="{media}" />
             </td>
-            {#each hotEncode(progressIndex, progress) as entry}
+            {#each hotEncode($tableIndex, progress) as entry}
               <td class="text-sm text-gray-900 font-light px-6 py-4">
                 {formatProgress(entry, media.episodes)}
               </td>

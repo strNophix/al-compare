@@ -1,20 +1,39 @@
 import { writable, derived } from "svelte/store";
-import type { ProgressRow, ProgressTable, RowId } from "../lib/types";
+import type {
+  ProgressRow,
+  ProgressTable,
+  RowId,
+  TableFilters,
+} from "../lib/types";
 
-export const term = writable("");
+export const tableFilters = writable<TableFilters>({
+  term: "",
+  onlyCommon: false,
+});
 
-export const items = writable<ProgressTable>(new Map());
+export const table = writable<ProgressTable>(new Map());
 
-function search([term, items]): ProgressTable {
+export const tableIndex = writable<string[]>([]);
+
+type SearchParams = [TableFilters, ProgressTable, string[]];
+
+function search([filters, items, index]: SearchParams): ProgressTable {
   return new Map(
     [...items].filter(([_, value]: [RowId, ProgressRow]) => {
       let title = value.media.title;
+
+      if (filters.onlyCommon) {
+        if (Object.keys(value.progress).length !== index.length) {
+          return false;
+        }
+      }
+
       return (
-        title.english?.toLowerCase().includes(term) ||
-        title.romaji?.toLowerCase().includes(term)
+        title.english?.toLowerCase().includes(filters.term) ||
+        title.romaji?.toLowerCase().includes(filters.term)
       );
     })
   );
 }
 
-export const filtered = derived([term, items], search);
+export const filtered = derived([tableFilters, table, tableIndex], search);

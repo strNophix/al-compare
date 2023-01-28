@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { type Media } from "../../types";
+  import type { Media } from "../../types";
   import { formatTimestamp } from "../../utils/formatting";
 
   export let media: Media;
